@@ -1,0 +1,53 @@
+#!/bin/bash 
+
+VERSION="${1}"
+test -z ${VERSION} && exit 1 
+
+test -d /root/electrum-oracoin-release/helpers/release-packages/Linux \
+ && rm -rf /root/electrum-oracoin-release/helpers/release-packages/Linux
+cd /root/repo
+rm -rf build dist packages
+test -f /root/linux_installer.sh && rm /root/linux_installer.sh
+find ./ -name '*.pyc' | xargs rm
+
+set -xeo pipefail
+mkdir packages
+pip install  --target packages -r ../requirements.txt
+#pip install --upgrade --target packages -r ../requirements.txt
+cp  /root/electrum-oracoin-release/python-trezor/trezorctl packages/trezorctl.py
+cp -av /root/packages/google/__init__.py /root/repo/packages/google
+cp /root/electrum-oracoin-release/source/linux.spec /root/repo
+if [ -d ${TRAVIS_BUILD_DIR} ] ; then 
+  echo "Building on Travis - moving /root/repo because permissions"
+  test -d /repo || cp -av /root/repo /
+  cd /repo
+  su build -c 'pyinstaller --windowed linux.spec'
+  cp -av /repo /root/
+else 
+ su build -c 'pyinstaller --windowed linux.spec'
+fi
+cd /root/repo
+cd dist
+#mv electrum-oracoin Electrum-Oracoin-"${VERSION}"
+#put installer script in here
+mkdir /root/electrum-oracoin-release/helpers/release-packages/Linux
+sed -e 's/ELECTRUM_VERSION/'${VERSION}'/g' /root/linux_installer.in > /tmp/linux_installer.sh
+cp /tmp/linux_installer.sh /root
+chmod 755 /root/linux_installer.sh
+mkdir Electrum-Oracoin-${VERSION}
+mv electrum-oracoin Electrum-Oracoin-${VERSION}
+cp /root/repo/icons/electrum-oracoin.png Electrum-Oracoin-${VERSION}
+cp /root/repo/README-Linux-x86_64.md Electrum-Oracoin-${VERSION}
+cp /root/repo/LICENSE Electrum-Oracoin-${VERSION}
+cp /root/repo/RELEASE-NOTES Electrum-Oracoin-${VERSION}
+cp /root/repo/AUTHORS Electrum-Oracoin-${VERSION}
+cp /root/90-trezor.rules Electrum-Oracoin-${VERSION}
+cp /root/electrum-oracoin_linux_startup.sh Electrum-Oracoin-${VERSION}/electrum-oracoin.sh
+cp /root/repo/electrum-oracoin.desktop Electrum-Oracoin-${VERSION}
+sed -e '/tail/d' /root/linux_installer.sh > Electrum-Oracoin-${VERSION}/linux_installer.sh
+tar -cpzvf Electrum-Oracoin-"${VERSION}"_Linux_x86_64.tgz Electrum-Oracoin-"${VERSION}"
+cat /root/linux_installer.sh Electrum-Oracoin-"${VERSION}"_Linux_x86_64.tgz > /root/electrum-oracoin-release/helpers/release-packages/Linux/Electrum-Oracoin-"${VERSION}"_Linux_x86_64-Installer.bin
+chmod 555 /root/electrum-oracoin-release/helpers/release-packages/Linux/Electrum-Oracoin-"${VERSION}"_Linux_x86_64-Installer.bin
+
+#mv Electrum-Oracoin-"${VERSION}"_Linux-x86_64.tgz /root/electrum-oracoin-release/helpers/release-packages/Linux
+
