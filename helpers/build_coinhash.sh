@@ -1,4 +1,4 @@
-git clone https://github.com/Groestlcoin/coinhash
+git clone https://github.com/creditbit/coinhash
   docker run -ti --rm \
    -e WINEPREFIX="/wine/wine-py2.7.8-32" \
    -v $(pwd)/coinhash:/code \
